@@ -11,7 +11,7 @@ namespace Core.Repository
     {
         public Task<List<T>> GetAll();
 
-        public void Create(T entity);
+        public int Create(T entity);
 
         public void Update(T entity);
 

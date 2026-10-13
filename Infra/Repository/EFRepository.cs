@@ -20,10 +20,11 @@ namespace Infra.Repository
             _dbSet = _context.Set<T>();
         }
 
-        public void Create(T entity)
+        public int Create(T entity)
         {
             _dbSet.Add(entity);
-            _context.SaveChanges();
+            var id = _context.SaveChanges();
+            return id;
         }
 
         public void Delete(int id)

@@ -22,9 +22,26 @@ builder.Services.AddScoped<IPagamentoService, PagamentoService>();
 builder.Services.AddScoped<IRabbitmqService, RabbitmqService>();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+    var pendingMigrations = dbContext.Database.GetPendingMigrations();
+    if (pendingMigrations.Any())
+    {
+        Console.WriteLine("Applying pending migrations...");
+        dbContext.Database.Migrate();
+        Console.WriteLine("Migrations applied successfully.");
+    }
+    else
+    {
+        Console.WriteLine("No pending migrations found.");
+    }
+  
+}
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();

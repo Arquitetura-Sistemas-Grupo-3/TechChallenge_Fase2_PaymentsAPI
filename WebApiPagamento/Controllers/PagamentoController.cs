@@ -23,15 +23,14 @@ namespace WebApiPagamento.Controllers
 
             return Ok(pagamentos);
         }
-
-        [HttpGet("consumirMensagem")]
+/*  [HttpGet("consumirMensagem")]
         public async Task<IActionResult> LerMensagem()
         {
             var mensagem = await _pagamentoService.LerMensagemConsumida();
 
             return Ok(mensagem);
         }
-
+*/
         [HttpPost]
         public async Task<IActionResult> AdicionarPagamento([FromBody] PagamentoRequisicao pagamentoRequisicao)
         {

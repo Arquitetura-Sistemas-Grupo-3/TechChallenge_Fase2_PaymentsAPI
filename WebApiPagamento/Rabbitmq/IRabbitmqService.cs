@@ -1,9 +1,9 @@
-﻿namespace WebApiPagamento.Rabbitmq
+﻿using Core.Input;
+
+namespace WebApiPagamento.Rabbitmq
 {
     public interface IRabbitmqService
     {
-        Task EnviarMenssagem(string message);
-
-        Task<List<String>> ConsumirMensagem();
+        Task EnviarMenssagem(PagamentoFila pagamentoFila);
     }
 }

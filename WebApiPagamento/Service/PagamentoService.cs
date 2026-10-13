@@ -18,17 +18,26 @@ namespace WebApiPagamento.Service
             _rabbitmqService = rabbitmqService;
         }
 
-        public async Task<List<String>> LerMensagemConsumida()
+      /*  public async Task<List<String>> LerMensagemConsumida()
         {
             return await _rabbitmqService.ConsumirMensagem();
         }
-
+      */
         public async Task<ServiceResposta> AdicionarPagamento(PagamentoRequisicao pagamentoRequisicao)
         {
             Pagamento pagamento = new Pagamento();
-            _rabbitmqService.EnviarMenssagem("Approved");
+           
+        
             pagamento = pagamento.AddPagamento(pagamentoRequisicao);
-            _pagamentoRepository.Create(pagamento);
+            PagamentoFila pagamentoFila = new PagamentoFila();
+            var id =_pagamentoRepository.Create(pagamento);
+            pagamentoFila.IdPagamento = id;
+            pagamentoFila.Status = true;
+            pagamentoFila.Valor = pagamentoRequisicao.Valor;
+            pagamentoFila.Data = pagamentoRequisicao.Data;
+            pagamentoFila.IdJogo = pagamentoRequisicao.IdJogo;
+            pagamentoFila.IdUsuario = pagamentoRequisicao.IdUsuario;
+            _rabbitmqService.EnviarMenssagem(pagamentoFila);
 
             return new ServiceResposta { Sucesso = true, Mensagem = "Pagamento adicionado com sucesso!" };
 

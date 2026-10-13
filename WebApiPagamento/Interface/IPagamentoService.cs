@@ -14,7 +14,7 @@ namespace WebApiPagamento.Interface
 
         public Task<PagamentoResposta?> GetById(int id);
 
-        public Task<List<String>> LerMensagemConsumida();
-
+      /*  public Task<List<String>> LerMensagemConsumida();
+      */
     }
 }
