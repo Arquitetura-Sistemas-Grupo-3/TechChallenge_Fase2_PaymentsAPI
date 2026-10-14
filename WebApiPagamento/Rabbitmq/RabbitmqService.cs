@@ -29,8 +29,8 @@ namespace WebApiPagamento.Rabbitmq
         public RabbitmqService(IConfiguration configuration, ILogger<RabbitmqService> logger)
         {
             _logger = logger;
-            _hostName = configuration["RabbitMQ:HostName"] ?? "localhost";
-            _userName = configuration["RabbitMQ:UserName"] ?? "guest";
+            _hostName = configuration["RabbitMQ:Host"] ?? "localhost";
+            _userName = configuration["RabbitMQ:Username"] ?? "guest";
             _password = configuration["RabbitMQ:Password"] ?? "guest";
             _queueName = configuration["RabbitMQ:QueueName"] ?? "PaymentProcessedEvent";
         }
