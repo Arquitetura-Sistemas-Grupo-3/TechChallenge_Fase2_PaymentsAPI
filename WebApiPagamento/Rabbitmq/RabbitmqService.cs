@@ -17,14 +17,22 @@ namespace WebApiPagamento.Rabbitmq
         private readonly string _userName;
         private readonly string _password;  
         private readonly string _queueName;
+        private const string ExchangeName = "pagamento.eventos";
+        private const string FilaNotificacoes = "notifications-payment-processed";
+        private const string FilaCatalogo = "payment-processed";
 
-        public RabbitmqService(IConfiguration configuration)
+
+        private IConnection? _connection;
+        private IChannel? _channel;
+        private readonly SemaphoreSlim _initLock = new(1, 1);
+
+        public RabbitmqService(IConfiguration configuration, ILogger<RabbitmqService> logger)
         {
-            _configuration = configuration;
-            _hostName = _configuration["RabbitMQ:HostName"] ?? "rabbitmq";
-            _userName = _configuration["RabbitMQ:UserName"] ?? "guest";
-            _password = _configuration["RabbitMQ:Password"] ?? "guest";
-            _queueName = _configuration["RabbitMQ:QueueName"] ?? "PaymentProcessedEvent";
+            _logger = logger;
+            _hostName = configuration["RabbitMQ:HostName"] ?? "localhost";
+            _userName = configuration["RabbitMQ:UserName"] ?? "guest";
+            _password = configuration["RabbitMQ:Password"] ?? "guest";
+            _queueName = configuration["RabbitMQ:QueueName"] ?? "PaymentProcessedEvent";
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -35,7 +43,7 @@ namespace WebApiPagamento.Rabbitmq
 
             await channel.QueueDeclareAsync(queue: _queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
             var consumer = new AsyncEventingBasicConsumer(channel);
-            string queueName = "OrderPlacedQueue";
+            string queueName = "order-placed";
             string message = "";
             List<String> mensagens = new List<String>();
 
@@ -59,14 +67,17 @@ namespace WebApiPagamento.Rabbitmq
 
         public async Task EnviarMenssagem(Core.Input.PagamentoFila pagamentoFila)
         {
-            var factory = new ConnectionFactory() { HostName = _hostName, UserName = _userName, Password = _password };
-            var connection = await factory.CreateConnectionAsync();
-            var channel = await connection.CreateChannelAsync();
+            var channel = await GetChannelAsync();
 
-           
-            var mensagem = JsonSerializer.SerializeToUtf8Bytes(pagamentoFila);
+            var body = JsonSerializer.SerializeToUtf8Bytes(pagamentoFila);
+            var props = new BasicProperties { Persistent = true };
 
-            await channel.BasicPublishAsync(exchange: "", routingKey: _queueName, body: mensagem);
+            await channel.BasicPublishAsync(
+                exchange: ExchangeName,
+                routingKey: "",
+                mandatory: false,
+                basicProperties: props,
+                body: body);
         }
         /*
         public async Task<List<String>> ConsumirMensagem()
@@ -99,5 +110,61 @@ namespace WebApiPagamento.Rabbitmq
 
             return mensagens;   
         }*/
+
+        private async Task<IChannel> GetChannelAsync(CancellationToken ct = default)
+        {
+            if (_channel is { IsOpen: true })
+                return _channel;
+
+            await _initLock.WaitAsync(ct);
+            try
+            {
+                if (_channel is { IsOpen: true })
+                    return _channel;
+
+                var factory = new ConnectionFactory
+                {
+                    HostName = _hostName,
+                    UserName = _userName,
+                    Password = _password
+                };
+
+                _connection = await factory.CreateConnectionAsync(ct);
+                _channel = await _connection.CreateChannelAsync(cancellationToken: ct);
+
+                // 1) Exchange fanout
+                await _channel.ExchangeDeclareAsync(
+                    exchange: ExchangeName,
+                    type: ExchangeType.Fanout,
+                    durable: true,
+                    autoDelete: false,
+                    cancellationToken: ct);
+
+                // 2) Filas
+                foreach (var fila in new[] { FilaNotificacoes, FilaCatalogo })
+                {
+                    await _channel.QueueDeclareAsync(
+                        queue: fila,
+                        durable: true,
+                        exclusive: false,
+                        autoDelete: false,
+                        arguments: null,
+                        cancellationToken: ct);
+
+                    // 3) Bind: liga a fila ao exchange (routingKey é ignorada no fanout)
+                    await _channel.QueueBindAsync(
+                        queue: fila,
+                        exchange: ExchangeName,
+                        routingKey: "",
+                        cancellationToken: ct);
+                }
+
+                return _channel;
+            }
+            finally
+            {
+                _initLock.Release();
+            }
+        }
     }
 }

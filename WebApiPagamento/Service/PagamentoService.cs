@@ -37,7 +37,7 @@ namespace WebApiPagamento.Service
             pagamentoFila.Data = pagamentoRequisicao.Data;
             pagamentoFila.IdJogo = pagamentoRequisicao.IdJogo;
             pagamentoFila.IdUsuario = pagamentoRequisicao.IdUsuario;
-            _rabbitmqService.EnviarMenssagem(pagamentoFila);
+            await _rabbitmqService.EnviarMenssagem(pagamentoFila);
 
             return new ServiceResposta { Sucesso = true, Mensagem = "Pagamento adicionado com sucesso!" };
 
