@@ -1,4 +1,5 @@
-﻿using Core.Input;
+﻿using Core.Entidade;
+using Core.Input;
 
 namespace WebApiPagamento.Interface
 {
@@ -13,6 +14,10 @@ namespace WebApiPagamento.Interface
         public Task<ServiceResposta> DeletarPagamento(int id);
 
         public Task<PagamentoResposta?> GetById(int id);
+
+        public Task<ServiceResposta> AdicionarPagamentoFila();
+
+        public Task<List<Pagamento>> ReceberPagamentoFila();
 
       /*  public Task<List<String>> LerMensagemConsumida();
       */

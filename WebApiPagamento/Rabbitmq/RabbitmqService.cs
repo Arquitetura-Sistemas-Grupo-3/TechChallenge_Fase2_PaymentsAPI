@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Threading.Channels;
 using WebApiPagamento.NewFolder;
 using Core.Input;
+using Core.Repository;
+using Core.Entidade;
 
 namespace WebApiPagamento.Rabbitmq
 {
@@ -17,25 +19,91 @@ namespace WebApiPagamento.Rabbitmq
         private readonly string _userName;
         private readonly string _password;  
         private readonly string _queueName;
-        private const string ExchangeName = "pagamento.eventos";
-        private const string FilaNotificacoes = "notifications-payment-processed";
-        private const string FilaCatalogo = "payment-processed";
+        private IServiceScopeFactory _scopefactory;
+
+        /*  private const string ExchangeName = "pagamento.eventos";
+          private const string FilaNotificacoes = "notifications-payment-processed";
+          private const string FilaCatalogo = "payment-processed";
 
 
-        private IConnection? _connection;
-        private IChannel? _channel;
-        private readonly SemaphoreSlim _initLock = new(1, 1);
-
-        public RabbitmqService(IConfiguration configuration, ILogger<RabbitmqService> logger)
+          private IConnection? _connection;
+          private IChannel? _channel;
+          private readonly SemaphoreSlim _initLock = new(1, 1);
+        */
+        public RabbitmqService(IConfiguration configuration, ILogger<RabbitmqService> logger, IServiceScopeFactory serviceScopeFactory)
         {
             _logger = logger;
-            _hostName = configuration["RabbitMQ:HostName"] ?? "localhost";
+            _hostName = configuration["RabbitMQ:Host"] ?? "rabbitmq";
             _userName = configuration["RabbitMQ:UserName"] ?? "guest";
             _password = configuration["RabbitMQ:Password"] ?? "guest";
             _queueName = configuration["RabbitMQ:QueueName"] ?? "PaymentProcessedEvent";
+            _scopefactory = serviceScopeFactory;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while(!stoppingToken.IsCancellationRequested)
+            {
+                try 
+                {
+                    var factory = new ConnectionFactory() { HostName = _hostName, UserName = _userName, Password = _password };
+                    var connection = await factory.CreateConnectionAsync();
+                    var channel = await connection.CreateChannelAsync();
+
+                    await channel.QueueDeclareAsync(queue: "order-placed", durable: true, exclusive: false, autoDelete: false, arguments: null);
+                    var consumer = new AsyncEventingBasicConsumer(channel);
+                    string queueName = "order-placed";
+                    string message = "";
+                    List<Pagamento> mensagens = new List<Pagamento>();
+
+                    consumer.ReceivedAsync += async (model, ea) =>
+                    {
+                        var body = ea.Body.ToArray();
+                        message = Encoding.UTF8.GetString(body);
+
+                        Console.WriteLine($"Mensagem: {message}");
+                        _logger.LogInformation($"Mensagem recebida: {message}");
+                        var pagamentoFila = JsonSerializer.Deserialize<OrderPlacedEvent>(message);
+                        if (pagamentoFila != null)
+                        {
+                            using var scope = _scopefactory.CreateScope();
+                            var repo = scope.ServiceProvider.GetRequiredService<IPagamentoRepository>();
+                            var pagamento = new Core.Entidade.Pagamento
+                            {
+                                Status = true,
+                                Valor = pagamentoFila.Price,
+                                Data = DateTime.Now,
+                                IdJogo = pagamentoFila.GameId,
+                                IdUsuario = pagamentoFila.UserId
+                            };
+                            repo.Create(pagamento);
+                            _logger.LogInformation($"Pagamento adicionado depois do create: Id={pagamento.Id}, Valor={pagamento.Valor}, Data={pagamento.Data}, IdJogo={pagamento.IdJogo}, IdUsuario={pagamento.IdUsuario}");
+                            // _pagamentoRepository.Create(pagamento);
+                            //  Console.WriteLine($"Pagamento adicionado depois do crea: Id={pagamento.Id}, Valor={pagamento.Valor}, Data={pagamento.Data}, IdJogo={pagamento.IdJogo}, IdUsuario={pagamento.IdUsuario}");
+                            mensagens.Add(pagamento);
+                            await EnviarMensagemFilaOrder(pagamentoFila);
+                        }
+
+                    };
+
+                    await channel.BasicConsumeAsync(
+                            queue: queueName,
+                            autoAck: true,
+                            consumer: consumer
+                          );
+
+
+                    await Task.Delay(Timeout.Infinite);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao consumir mensagens da fila RabbitMQ. Tentando novamente em 5 segundos...");
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+            } 
+        }
+     
+        public async Task<List<Pagamento>> TesteAsync()
         {
             var factory = new ConnectionFactory() { HostName = _hostName, UserName = _userName, Password = _password };
             var connection = await factory.CreateConnectionAsync();
@@ -43,9 +111,9 @@ namespace WebApiPagamento.Rabbitmq
 
             await channel.QueueDeclareAsync(queue: _queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
             var consumer = new AsyncEventingBasicConsumer(channel);
-            string queueName = "order-placed";
+            
             string message = "";
-            List<String> mensagens = new List<String>();
+            List<Pagamento> mensagens = new List<Pagamento>();
 
             consumer.ReceivedAsync += async (model, ea) =>
             {
@@ -53,64 +121,58 @@ namespace WebApiPagamento.Rabbitmq
                 message = Encoding.UTF8.GetString(body);
 
                 Console.WriteLine($"Mensagem: {message}");
-                mensagens.Add(message);
+
+                    var pagamentoFila = JsonSerializer.Deserialize<OrderPlacedEvent>(message);
+                    if (pagamentoFila != null)
+                    {
+                    using var scope = _scopefactory.CreateScope();
+                    var repo = scope.ServiceProvider.GetRequiredService<IPagamentoRepository>();
+                    var pagamento = new Core.Entidade.Pagamento
+                        {
+                            Status = true,
+                            Valor = pagamentoFila.Price,
+                            Data = DateTime.Now,
+                            IdJogo = pagamentoFila.GameId,
+                            IdUsuario = pagamentoFila.UserId
+                        };
+                        repo.Create(pagamento);
+                    // _pagamentoRepository.Create(pagamento);
+                    Console.WriteLine($"Pagamento adicionado: Id={pagamento.Id}, Valor={pagamento.Valor}, Data={pagamento.Data}, IdJogo={pagamento.IdJogo}, IdUsuario={pagamento.IdUsuario}");
+                       mensagens.Add(pagamento);
+                
+                    }
+              
             };
 
             await channel.BasicConsumeAsync(
-                    queue: queueName,
+                    queue: _queueName,
                     autoAck: true,
                     consumer: consumer
                   );
+            await Task.Delay(1000);
 
-            await Task.Delay(Timeout.Infinite);
+            return mensagens;
         }
 
-        public async Task EnviarMenssagem(Core.Input.PagamentoFila pagamentoFila)
-        {
-            var channel = await GetChannelAsync();
-
-            var body = JsonSerializer.SerializeToUtf8Bytes(pagamentoFila);
-            var props = new BasicProperties { Persistent = true };
-
-            await channel.BasicPublishAsync(
-                exchange: ExchangeName,
-                routingKey: "",
-                mandatory: false,
-                basicProperties: props,
-                body: body);
-        }
-        /*
-        public async Task<List<String>> ConsumirMensagem()
+        public async Task EnviarMensagemFilaOrder(OrderPlacedEvent orderPlacedEvent)
         {
             var factory = new ConnectionFactory() { HostName = _hostName, UserName = _userName, Password = _password };
-
-            using var connection = await factory.CreateConnectionAsync();
-            using var channel = await connection.CreateChannelAsync();
-
+            var connection = await factory.CreateConnectionAsync();
+            var channel = await connection.CreateChannelAsync();
+            _logger.LogInformation($"Enviando mensagem para a fila: {JsonSerializer.Serialize(orderPlacedEvent)}");
             await channel.QueueDeclareAsync(queue: _queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
-            var consumer = new AsyncEventingBasicConsumer(channel);
-            string queueName = "OrderPlacedQueue";
-            string message = "";
-            List<String> mensagens = new List<String>();
-
-            consumer.ReceivedAsync += async (model, ea) =>
-            {
-                var body = ea.Body.ToArray();
-                message = Encoding.UTF8.GetString(body);
-
-                Console.WriteLine($"Mensagem: {message}");
-                mensagens.Add(message);
-            };
-
-            await channel.BasicConsumeAsync(
-                    queue: queueName,
-                    autoAck: true,
-                    consumer: consumer
-                  );
-
-            return mensagens;   
-        }*/
-
+            var body = JsonSerializer.SerializeToUtf8Bytes(orderPlacedEvent);
+            var props = new BasicProperties { Persistent = true }; 
+            await channel.BasicPublishAsync(
+                exchange: "",
+                routingKey: _queueName,
+                mandatory: false,
+                body: body,
+                basicProperties: props);
+            _logger.LogInformation($"Mensagem enviada para a fila: {JsonSerializer.Serialize(orderPlacedEvent)}");
+        }
+       
+        /*
         private async Task<IChannel> GetChannelAsync(CancellationToken ct = default)
         {
             if (_channel is { IsOpen: true })
@@ -132,7 +194,7 @@ namespace WebApiPagamento.Rabbitmq
                 _connection = await factory.CreateConnectionAsync(ct);
                 _channel = await _connection.CreateChannelAsync(cancellationToken: ct);
 
-                // 1) Exchange fanout
+         
                 await _channel.ExchangeDeclareAsync(
                     exchange: ExchangeName,
                     type: ExchangeType.Fanout,
@@ -140,7 +202,7 @@ namespace WebApiPagamento.Rabbitmq
                     autoDelete: false,
                     cancellationToken: ct);
 
-                // 2) Filas
+
                 foreach (var fila in new[] { FilaNotificacoes, FilaCatalogo })
                 {
                     await _channel.QueueDeclareAsync(
@@ -151,7 +213,7 @@ namespace WebApiPagamento.Rabbitmq
                         arguments: null,
                         cancellationToken: ct);
 
-                    // 3) Bind: liga a fila ao exchange (routingKey é ignorada no fanout)
+              
                     await _channel.QueueBindAsync(
                         queue: fila,
                         exchange: ExchangeName,
@@ -165,6 +227,6 @@ namespace WebApiPagamento.Rabbitmq
             {
                 _initLock.Release();
             }
-        }
+        }*/
     }
 }

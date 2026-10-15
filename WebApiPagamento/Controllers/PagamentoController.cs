@@ -23,14 +23,23 @@ namespace WebApiPagamento.Controllers
 
             return Ok(pagamentos);
         }
-/*  [HttpGet("consumirMensagem")]
-        public async Task<IActionResult> LerMensagem()
-        {
-            var mensagem = await _pagamentoService.LerMensagemConsumida();
 
-            return Ok(mensagem);
+        [HttpGet("receberpagamentofila")]
+        public async Task<IActionResult> ReceberPagamentoFila()
+        {
+            var pagamentos = await _pagamentoService.ReceberPagamentoFila();
+            return Ok(pagamentos);
         }
-*/
+
+        [HttpGet("addpagamentofila")]
+        public async Task<IActionResult> AdicionarPagamentoFila()
+        {
+            var resposta = await _pagamentoService.AdicionarPagamentoFila();
+            if (resposta.Sucesso)
+                return Ok(new { Sucesso = true, Mensagem = "Pagamento adicionado na fila com sucesso!" });
+            else
+                return BadRequest(new { Sucesso = false, Mensagem = "Erro ao adicionar pagamento na fila." });
+        }
         [HttpPost]
         public async Task<IActionResult> AdicionarPagamento([FromBody] PagamentoRequisicao pagamentoRequisicao)
         {

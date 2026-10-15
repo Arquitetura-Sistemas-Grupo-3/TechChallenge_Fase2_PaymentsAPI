@@ -2,6 +2,7 @@
 using Core.Input;
 using Core.Repository;
 using WebApiPagamento.Interface;
+using WebApiPagamento.NewFolder;
 using WebApiPagamento.Rabbitmq;
 
 namespace WebApiPagamento.Service
@@ -23,21 +24,37 @@ namespace WebApiPagamento.Service
             return await _rabbitmqService.ConsumirMensagem();
         }
       */
+        public async Task<ServiceResposta> AdicionarPagamentoFila()
+        {
+            OrderPlacedEvent orderPlacedEvent = new OrderPlacedEvent
+            {
+                OrderId = 3,
+                UserId = 4,
+                GameId = 5,
+                GameName = "Jogo Exemplo",
+                UserEmail = "juli@gmail.com"
+            };
+            await _rabbitmqService.EnviarMensagemFilaOrder(orderPlacedEvent);
+            return new ServiceResposta { Sucesso = true, Mensagem = "Pagamento adicionado na fila com sucesso!" };
+        }
+
+        public async Task<List<Pagamento>> ReceberPagamentoFila()
+        {
+            var teste = await _rabbitmqService.TesteAsync();
+            return teste;
+        }
+
         public async Task<ServiceResposta> AdicionarPagamento(PagamentoRequisicao pagamentoRequisicao)
         {
             Pagamento pagamento = new Pagamento();
            
-        
             pagamento = pagamento.AddPagamento(pagamentoRequisicao);
-            PagamentoFila pagamentoFila = new PagamentoFila();
+            OrderPlacedEvent orderPlaced = new OrderPlacedEvent();
             var id =_pagamentoRepository.Create(pagamento);
-            pagamentoFila.IdPagamento = id;
-            pagamentoFila.Status = true;
-            pagamentoFila.Valor = pagamentoRequisicao.Valor;
-            pagamentoFila.Data = pagamentoRequisicao.Data;
-            pagamentoFila.IdJogo = pagamentoRequisicao.IdJogo;
-            pagamentoFila.IdUsuario = pagamentoRequisicao.IdUsuario;
-            await _rabbitmqService.EnviarMenssagem(pagamentoFila);
+            orderPlaced.Price = pagamentoRequisicao.Valor;
+            orderPlaced.GameId = pagamentoRequisicao.IdJogo;
+            orderPlaced.UserId = pagamentoRequisicao.IdUsuario;
+            await _rabbitmqService.EnviarMensagemFilaOrder(orderPlaced);
 
             return new ServiceResposta { Sucesso = true, Mensagem = "Pagamento adicionado com sucesso!" };
 

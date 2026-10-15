@@ -21,6 +21,12 @@ builder.Services.AddScoped<IPagamentoRepository, PagamentoRepository>();
 builder.Services.AddScoped<IPagamentoService, PagamentoService>();
 builder.Services.AddScoped<IRabbitmqService, RabbitmqService>();
 
+builder.Services.AddHostedService<RabbitmqService>();
+builder.Services.Configure<HostOptions>(opts =>
+{
+    opts.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+});
+
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
