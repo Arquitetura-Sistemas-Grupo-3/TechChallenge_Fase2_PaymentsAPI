@@ -8,6 +8,7 @@ using WebApiPagamento.NewFolder;
 using Core.Input;
 using Core.Repository;
 using Core.Entidade;
+using Core.Events;
 
 namespace WebApiPagamento.Rabbitmq
 {
@@ -20,16 +21,14 @@ namespace WebApiPagamento.Rabbitmq
         private readonly string _password;  
         private readonly string _queueName;
         private IServiceScopeFactory _scopefactory;
+        private string ExchangeName;
+        private string FilaNotificacoes ;
+        private string FilaCatalogo;
 
-        /*  private const string ExchangeName = "pagamento.eventos";
-          private const string FilaNotificacoes = "notifications-payment-processed";
-          private const string FilaCatalogo = "payment-processed";
+        private IConnection? _connection;
+        private IChannel? _channel;
+        private readonly SemaphoreSlim _initLock = new(1, 1);
 
-
-          private IConnection? _connection;
-          private IChannel? _channel;
-          private readonly SemaphoreSlim _initLock = new(1, 1);
-        */
         public RabbitmqService(IConfiguration configuration, ILogger<RabbitmqService> logger, IServiceScopeFactory serviceScopeFactory)
         {
             _logger = logger;
@@ -38,6 +37,9 @@ namespace WebApiPagamento.Rabbitmq
             _password = configuration["RabbitMQ:Password"] ?? "guest";
             _queueName = configuration["RabbitMQ:QueueName"] ?? "PaymentProcessedEvent";
             _scopefactory = serviceScopeFactory;
+            ExchangeName = configuration["RabbitMQ:ExchangeName"] ?? "pagamento.eventos";
+            FilaNotificacoes = configuration["RabbitMQ:FilaNotificacoes"] ?? "notifications-payment-processed";
+            FilaCatalogo = configuration["RabbitMQ:FilaCatalogo"] ?? "catalog-payment-processed";
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -81,7 +83,17 @@ namespace WebApiPagamento.Rabbitmq
                             // _pagamentoRepository.Create(pagamento);
                             //  Console.WriteLine($"Pagamento adicionado depois do crea: Id={pagamento.Id}, Valor={pagamento.Valor}, Data={pagamento.Data}, IdJogo={pagamento.IdJogo}, IdUsuario={pagamento.IdUsuario}");
                             mensagens.Add(pagamento);
-                            await EnviarMensagemFilaOrder(pagamentoFila);
+
+
+
+                            await Exchange(new PaymentProcessedEvent(
+                                pagamentoFila.OrderId,
+                                pagamentoFila.UserId,
+                                pagamentoFila.GameId,
+                                pagamentoFila.GameName,
+                                pagamentoFila.UserEmail,
+                                pagamentoFila.Price,
+                                PaymentStatus.Approved));
                         }
 
                     };
@@ -172,7 +184,21 @@ namespace WebApiPagamento.Rabbitmq
             _logger.LogInformation($"Mensagem enviada para a fila: {JsonSerializer.Serialize(orderPlacedEvent)}");
         }
        
-        /*
+        public async Task Exchange(PaymentProcessedEvent pagamentoFila)
+        {
+            var channel = await GetChannelAsync();
+
+            var body = JsonSerializer.SerializeToUtf8Bytes(pagamentoFila);
+            var props = new BasicProperties { Persistent = true };
+
+            await channel.BasicPublishAsync(
+                exchange: ExchangeName,
+                routingKey: "",
+                mandatory: false,
+                basicProperties: props,
+                body: body);
+        }
+        
         private async Task<IChannel> GetChannelAsync(CancellationToken ct = default)
         {
             if (_channel is { IsOpen: true })
@@ -227,6 +253,6 @@ namespace WebApiPagamento.Rabbitmq
             {
                 _initLock.Release();
             }
-        }*/
+        }
     }
 }
