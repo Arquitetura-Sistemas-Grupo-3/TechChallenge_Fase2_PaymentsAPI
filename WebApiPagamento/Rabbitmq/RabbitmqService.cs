@@ -70,9 +70,13 @@ namespace WebApiPagamento.Rabbitmq
                         {
                             using var scope = _scopefactory.CreateScope();
                             var repo = scope.ServiceProvider.GetRequiredService<IPagamentoRepository>();
+                            if (pagamentoFila.Price == 1000)
+                            {
+                                
+                            }
                             var pagamento = new Core.Entidade.Pagamento
                             {
-                                Status = true,
+                                Status = pagamentoFila.Price == 1000 ? false : true,
                                 Valor = pagamentoFila.Price,
                                 Data = DateTime.Now,
                                 IdJogo = pagamentoFila.GameId,
@@ -84,8 +88,6 @@ namespace WebApiPagamento.Rabbitmq
                             //  Console.WriteLine($"Pagamento adicionado depois do crea: Id={pagamento.Id}, Valor={pagamento.Valor}, Data={pagamento.Data}, IdJogo={pagamento.IdJogo}, IdUsuario={pagamento.IdUsuario}");
                             mensagens.Add(pagamento);
 
-
-
                             await Exchange(new PaymentProcessedEvent(
                                 pagamentoFila.OrderId,
                                 pagamentoFila.UserId,
@@ -93,7 +95,7 @@ namespace WebApiPagamento.Rabbitmq
                                 pagamentoFila.GameName,
                                 pagamentoFila.UserEmail,
                                 pagamentoFila.Price,
-                                PaymentStatus.Approved));
+                                pagamentoFila.Price == 1000 ? PaymentStatus.Rejected : PaymentStatus.Approved));
                         }
 
                     };

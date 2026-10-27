@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payments-api
+  template:
+    metadata:
+      labels:
+        app: payments-api
+    spec:
+      containers:
+      - name: payments-api
+        image: julianamh/webapipagamento:1.1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ConnectionStrings__DefaultConnection
+          value: "Server=db-payment.default.svc.cluster.local,1433;Database=PaymentAPI;User Id=sa;Password=SenhaForte@1234;TrustServerCertificate=True;"

@@ -17,6 +17,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+
+
 builder.Services.AddScoped<IPagamentoRepository, PagamentoRepository>();
 builder.Services.AddScoped<IPagamentoService, PagamentoService>();
 builder.Services.AddScoped<IRabbitmqService, RabbitmqService>();
