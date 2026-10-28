@@ -30,7 +30,7 @@ spec:
             - name: MSSQL_SA_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-payment-api-secret
+                  name: payment-api-secret
                   key: MSSQL_SA_PASSWORD
           resources:
             requests:

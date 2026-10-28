@@ -6,6 +6,6 @@ metadata:
     app: payment-api
 data:
   ASPNETCORE_ENVIRONMENT: "Development"
-  RabbitMq__Host: "rabbitmq"
-  RabbitMq__Port: "5672"
-  RabbitMq__VirtualHost: "/"
+  RabbitMQ__Host: "rabbitmq"
+  RabbitMQ__Port: "5672"
+  RabbitMQ__VirtualHost: "/"

@@ -23,7 +23,7 @@ spec:
               name: painel
           envFrom:
             - secretRef:
-                name: db-payment-api-secret
+                name: payment-api-secret
           readinessProbe:
            tcpSocket:
             port: 5672
