@@ -14,9 +14,9 @@ spec:
     spec:
       containers:
       - name: payments-api
-        image: julianamh/webapipagamento:1.1
+        image: julianamh/webapipagamento:1.2
         ports:
         - containerPort: 8080
         env:
-        - name: ConnectionStrings__DefaultConnection
+        - name: ConnectionStrings__PaymentAPI
           value: "Server=db-payment.default.svc.cluster.local,1433;Database=PaymentAPI;User Id=sa;Password=SenhaForte@1234;TrustServerCertificate=True;"

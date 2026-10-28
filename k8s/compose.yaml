@@ -15,7 +15,7 @@ services:
         depends_on:
             - db
         environment:
-            - ConnectionStrings__DefaultConnection=Server=db;Database=PaymentAPI;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;
+            - ConnectionStrings__PaymentAPI=Server=db;Database=PaymentAPI;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;
     db:
         image: mcr.microsoft.com/mssql/server:2022-latest
         environment:
