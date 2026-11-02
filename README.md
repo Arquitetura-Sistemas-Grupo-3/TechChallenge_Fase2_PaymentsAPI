@@ -9,7 +9,7 @@ A aplicação também disponibiliza endpoints REST para realizar operações de 
 
 🚀 Tecnologias utilizadas
 C#
-.NET / ASP.NET Core
+.NET ASP.NET Core
 Entity Framework ou repositório de persistência 
 RabbitMQ – mensageria e comunicação assíncrona.
 System.Text.Json – serialização e desserialização de mensagens JSON.
@@ -121,22 +121,6 @@ PaymentStatus: identifica se o pagamento foi aprovado ou rejeitado.
 ⚙️ Configuração
 
 As configurações do RabbitMQ são obtidas através do IConfiguration.
-
-Exemplo de configuração no appsettings.json:
-
-json
-{
-  "RabbitMQ": {
-    "Host": "rabbitmq",
-    "UserName": "guest",
-    "Password": "guest",
-    "QueueName": "PaymentProcessedEvent",
-    "ExchangeName": "pagamento.eventos",
-    "FilaNotificacoes": "notifications-payment-processed",
-    "FilaCatalogo": "catalog-payment-processed"
-  }
-}
-
 
 A aplicação utiliza valores padrão caso as configurações não sejam encontradas.
 
