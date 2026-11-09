@@ -124,4 +124,11 @@ PaymentStatus: identifica se o pagamento foi aprovado ou rejeitado.
 
 # Executar localmente
 
+Docker-compose up --build -d
 
+RabbitMq localhost:15672/ container: rabbitmq-payment
+API localhost:8080/swagger/index.html container: apipagamento
+Container banco: payment-db porta 1433
+
+Fila: 	
+PaymentProcessedEvent
