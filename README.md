@@ -57,7 +57,7 @@ Após a validação, o sistema registra o pagamento e publica um evento contendo
 
 
 | Método | Rota | Descrição |
-|---|---|---|---|
+|---|---|---|
 | `GET` | `/Pagamento` | Lista todos os pagamentos. |
 | `GET` | `/Pagamento/{id}` | Busca um pagamento pelo ID. |
 | `POST` | `/Pagamento` | Adiciona um novo pagamento. |
