@@ -1,5 +1,4 @@
-💳 WebApiPagamento
-📌 Sobre o projeto
+# WebApiPagamento
 
 O WebApiPagamento é uma API desenvolvida em C# com ASP.NET Core, responsável pelo gerenciamento e processamento de pagamentos em uma arquitetura baseada em microsserviços.
 
@@ -7,17 +6,18 @@ O projeto utiliza RabbitMQ para comunicação assíncrona entre serviços, permi
 
 A aplicação também disponibiliza endpoints REST para realizar operações de consulta, cadastro, atualização e exclusão de pagamentos.
 
-🚀 Tecnologias utilizadas
+# Tecnologia
 C#
-.NET / ASP.NET Core
+.NET ASP.NET Core
 Entity Framework ou repositório de persistência 
 RabbitMQ – mensageria e comunicação assíncrona.
 System.Text.Json – serialização e desserialização de mensagens JSON.
 Dependency Injection – injeção de dependências.
 BackgroundService – execução de consumidores em segundo plano.
-REST API – comunicação HTTP.
-🏗️ Arquitetura e funcionamento
+REST API – comunicação HTTP. 
+Arquitetura e funcionamento
 
+# Estrutura
 O projeto trabalha com comunicação entre microsserviços utilizando RabbitMQ.
 
 O fluxo de processamento funciona da seguinte maneira:
@@ -29,11 +29,11 @@ Os dados do pedido são utilizados para criar um registro de pagamento.
 O pagamento recebe um status de aprovado ou rejeitado.
 Após o processamento, é publicado um evento PaymentProcessedEvent.
 Outros microsserviços recebem o evento através de suas respectivas filas.
-📬 Comunicação com RabbitMQ
+Comunicação com RabbitMQ
 
-O projeto utiliza as seguintes filas:
+O projeto utiliza a seguinte fila:
 
-Fila	Responsabilidade
+# Fila e Responsabilidade
 order-placed	Receber pedidos para processamento de pagamento.
 notifications-payment-processed	Receber eventos de pagamentos processados para notificações.
 catalog-payment-processed	Receber eventos de pagamentos processados pelo serviço de catálogo.
@@ -44,7 +44,7 @@ pagamento.eventos
 
 O exchange utiliza o tipo Fanout, distribuindo os eventos publicados para todas as filas vinculadas.
 
-💰 Regras de processamento de pagamento
+# Regra de negócio
 
 Atualmente, a aplicação possui uma regra de negócio demonstrativa para determinar o resultado do pagamento:
 
@@ -53,19 +53,19 @@ Para os demais valores, o pagamento é aprovado.
 
 Após a validação, o sistema registra o pagamento e publica um evento contendo o resultado do processamento.
 
-Observação: essa regra é utilizada como exemplo de validação e pode ser substituída futuramente por uma integração com um gateway de pagamento.
-🔗 Endpoints da API
+# API
 
-A API disponibiliza os seguintes endpoints:
 
-Método	Rota	Descrição
-GET	/Pagamento	Lista todos os pagamentos.
-GET	/Pagamento/{id}	Busca um pagamento pelo ID.
-POST	/Pagamento	Adiciona um novo pagamento.
-PUT	/Pagamento	Atualiza um pagamento existente.
-DELETE	/Pagamento?id={id}	Exclui um pagamento.
-GET	/Pagamento/receberpagamentofila	Recebe pagamentos através da fila.
-GET	/Pagamento/addpagamentofila	Adiciona um pagamento à fila.
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/Pagamento` | Lista todos os pagamentos. |
+| `GET` | `/Pagamento/{id}` | Busca um pagamento pelo ID. |
+| `POST` | `/Pagamento` | Adiciona um novo pagamento. |
+| `PUT` | `/Pagamento` | Atualiza um pagamento existente. |
+| `DELETE` | `/Pagamento?id={id}` | Exclui um pagamento. |
+| `GET` | `/Pagamento/addpagamentofila` | Método de exemplo, somente para testar e não tem ligação com o fluxo principal e adiciona um pagamento à fila. |
+| `GET` | `/Pagamento/addpagamentofila` | Método de exemplo para teste e recebe o pagamento através da fila. |
+
 Exemplos de utilização
 
 Cadastrar pagamento
@@ -107,8 +107,11 @@ DELETE /Pagamento?id=1
 
 Remove o pagamento correspondente ao ID informado.
 
-🐇 Processamento assíncrono
+# Migration
 
+A migration inicia criando a tabela Pagamentos
+
+# RabbitMq
 O consumo das mensagens é realizado pela classe RabbitmqService, que herda de BackgroundService.
 
 Essa implementação permite que a aplicação fique continuamente aguardando novas mensagens na fila order-placed, sem depender de uma requisição HTTP para iniciar o processamento.
@@ -118,41 +121,14 @@ A comunicação entre os microsserviços ocorre através de eventos:
 OrderPlacedEvent: representa um pedido realizado.
 PaymentProcessedEvent: representa o resultado do processamento do pagamento.
 PaymentStatus: identifica se o pagamento foi aprovado ou rejeitado.
-⚙️ Configuração
 
-As configurações do RabbitMQ são obtidas através do IConfiguration.
+# Executar localmente
 
-Exemplo de configuração no appsettings.json:
+Docker-compose up --build -d
 
-json
-{
-  "RabbitMQ": {
-    "Host": "rabbitmq",
-    "UserName": "guest",
-    "Password": "guest",
-    "QueueName": "PaymentProcessedEvent",
-    "ExchangeName": "pagamento.eventos",
-    "FilaNotificacoes": "notifications-payment-processed",
-    "FilaCatalogo": "catalog-payment-processed"
-  }
-}
+RabbitMq localhost:15672/ container: rabbitmq-payment
+API localhost:8080/swagger/index.html container: apipagamento
+Container banco: payment-db porta 1433
 
-
-A aplicação utiliza valores padrão caso as configurações não sejam encontradas.
-
-Importante: em ambiente de produção, utilize variáveis de ambiente ou um gerenciador de segredos para armazenar as credenciais do RabbitMQ.
-
-📂 Principais componentes
-PagamentoController: disponibiliza os endpoints HTTP para gerenciamento dos pagamentos.
-IPagamentoService: interface responsável pelas operações da camada de serviço.
-RabbitmqService: responsável pelo consumo e publicação de mensagens no RabbitMQ.
-IPagamentoRepository: interface responsável pelo acesso aos dados dos pagamentos.
-OrderPlacedEvent: evento recebido quando um pedido é realizado.
-PaymentProcessedEvent: evento publicado após o processamento do pagamento.
-Pagamento: entidade que representa um pagamento.
-PagamentoRequisicao: modelo utilizado para receber dados de cadastro.
-PagamentoAtualizacao: modelo utilizado para receber dados de atualização.
-
-O WebApiPagamento demonstra a utilização de uma arquitetura de microsserviços com comunicação assíncrona, utilizando RabbitMQ para desacoplar o processamento de pagamentos dos demais serviços da aplicação.
-
-A implementação permite que diferentes microsserviços compartilhem informações sobre o processamento dos pagamentos por meio de eventos, contribuindo para uma arquitetura mais organizada, escalável e independente.
+Fila: 	
+PaymentProcessedEvent
