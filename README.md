@@ -66,15 +66,6 @@ Após a validação, o sistema registra o pagamento e publica um evento contendo
 | `GET` | `/Pagamento/addpagamentofila` | Método de exemplo, somente para testar e não tem ligação com o fluxo principal e adiciona um pagamento à fila. |
 | `GET` | `/Pagamento/addpagamentofila` | Método de exemplo para teste e recebe o pagamento através da fila. |
 
-
-GET	/Pagamento	Lista todos os pagamentos.
-GET	/Pagamento/{id}	Busca um pagamento pelo ID.
-POST	/Pagamento	Adiciona um novo pagamento.
-PUT	/Pagamento	Atualiza um pagamento existente.
-DELETE	/Pagamento?id={id}	Exclui um pagamento.
-GET	/Pagamento/receberpagamentofila	Recebe pagamentos através da fila.
-GET	/Pagamento/addpagamentofila	Adiciona um pagamento à fila.
-
 Exemplos de utilização
 
 Cadastrar pagamento
